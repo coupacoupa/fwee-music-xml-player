@@ -36,12 +36,17 @@ export interface PianoNote {
 // Store State Types
 // ============================================================================
 
+export interface ActiveNote {
+  midi: number;
+  staffIndex: number; // 0 for top staff (usually right hand), 1 for bottom (usually left)
+}
+
 export interface PlaybackStoreState {
   // State
   playbackState: PlaybackState;
   position: MusicPosition;
   bpm: number;
-  activeNotes: number[];
+  activeNotes: ActiveNote[];
   pianoLoaded: boolean;
   
   // References
@@ -55,7 +60,7 @@ export interface PlaybackStoreState {
   reset: () => void;
   setBpm: (bpm: number) => void;
   setCurrentTime: (time: number) => void;
-  setActiveNotes: (notes: number[]) => void;
+  setActiveNotes: (notes: ActiveNote[]) => void;
   seekToTimestamp: (timestamp: number) => void;
   setOsmd: (osmd: OpenSheetMusicDisplay | null) => void;
   setSampler: (sampler: Tone.Sampler | null) => void;
@@ -117,7 +122,7 @@ export interface ContextMenuState {
 
 export interface PianoKeyboardProps {
   /** Array of active MIDI note numbers to highlight */
-  activeNotes?: number[];
+  activeNotes?: ActiveNote[];
   /** Callback when a key is clicked */
   onNoteClick?: (midiNote: number) => void;
   /** Width of white keys in pixels */

@@ -89,7 +89,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
         }));
       },
 
-      setActiveNotes: (activeNotes: number[]) => {
+      setActiveNotes: (activeNotes: import('@/lib/types').ActiveNote[]) => {
         set({ activeNotes });
       },
 
@@ -161,7 +161,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
         const currentVoiceEntries = iterator.CurrentVoiceEntries;
         
         if (currentVoiceEntries && currentVoiceEntries.length > 0) {
-          const midis: number[] = [];
+          const activeNotes: import('@/lib/types').ActiveNote[] = [];
           
           // Calculate audio duration based on note lengths
           let audioDuration = 0.5; // fallback
@@ -178,6 +178,16 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
 
           // Play notes
           currentVoiceEntries.forEach((entry: any) => {
+            // Determine staff index (1-based usually in OSMD, typically 1 for treble, 2 for bass)
+            // We'll normalize 1 -> 0 (right/top), 2 -> 1 (left/bottom) if possible, or just store the ID.
+            // entry.ParentSourceStaffEntry.ParentStaff.Id
+            let staffId = 1;
+            try {
+               staffId = entry.ParentSourceStaffEntry?.ParentStaff?.Id || 1;
+            } catch (e) {
+               console.warn("Could not determine staff ID", e);
+            }
+
             if (entry.Notes) {
               entry.Notes.forEach((note: any) => {
                 if (note.Pitch) {
@@ -186,14 +196,17 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
                     sampler?.triggerAttackRelease(freq, audioDuration, Tone.now());
                     
                     const midi = Math.round(12 * Math.log2(freq / 440) + 69);
-                    midis.push(midi);
+                    activeNotes.push({ 
+                        midi,
+                        staffIndex: staffId - 1 // Normalize to 0-based index
+                    });
                   }
                 }
               });
             }
           });
           
-          set({ activeNotes: midis });
+          set({ activeNotes });
         }
 
         // Calculate duration to next note
@@ -223,6 +236,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
             currentTimestamp,
           },
         });
+
 
         // Schedule next note
         Tone.getTransport().scheduleOnce(() => {

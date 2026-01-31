@@ -49,11 +49,26 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
     const keys = [];
     for (let i = 0; i < totalKeys; i++) {
       const midi = startNote + i;
-      const isActive = activeNotes.includes(midi);
+      const activeobj = activeNotes.find(note => note.midi === midi);
+      const isActive = !!activeobj;
       const isPressed = pressedKeys.has(midi);
       const black = isBlackKey(midi);
+      const isLeftHand = activeobj?.staffIndex === 1; // Assuming 1 is left (bottom staff)
 
       const combinedActive = isActive || isPressed;
+
+      // Color logic
+      // Default (Right Hand / Pressed): Blue
+      // Left Hand: Emerald/Green
+      const activeColorClass = isLeftHand 
+        ? (black 
+            ? '!bg-gradient-to-b !from-emerald-600 !via-emerald-500 !to-emerald-700 shadow-[0_0_20px_rgba(16,185,129,0.8)]' 
+            : '!bg-gradient-to-b !from-emerald-200 !via-emerald-100 !to-emerald-50 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+          )
+        : (black 
+            ? '!bg-gradient-to-b !from-blue-600 !via-blue-500 !to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.8)]' 
+            : '!bg-gradient-to-b !from-blue-200 !via-blue-100 !to-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+          );
 
       keys.push(
         <div
@@ -65,13 +80,7 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
               ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-black z-10 shadow-2xl' 
               : 'bg-gradient-to-b from-gray-50 via-white to-gray-100 border-r border-gray-300 shadow-inner'
             }
-            ${combinedActive 
-              ? (black 
-                  ? '!bg-gradient-to-b !from-blue-600 !via-blue-500 !to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.8)]' 
-                  : '!bg-gradient-to-b !from-blue-200 !via-blue-100 !to-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
-                )
-              : ''
-            }
+            ${combinedActive ? activeColorClass : ''}
             ${isPressed && !black ? 'translate-y-[2px]' : ''}
             hover:brightness-95 active:brightness-90
           `}
@@ -92,7 +101,7 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
           
           {/* Active indicator dot */}
           {combinedActive && !black && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 rounded-full shadow-lg animate-pulse" />
+            <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 ${isLeftHand ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full shadow-lg animate-pulse`} />
           )}
           
           {/* Shadow depth for black keys */}
