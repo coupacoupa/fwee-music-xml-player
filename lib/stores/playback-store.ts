@@ -33,10 +33,6 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
         Tone.getTransport().start();
         
         // Show cursor
-        if (osmd.cursor) {
-          osmd.cursor.show();
-        }
-        
         set({ playbackState: PlaybackState.PLAYING });
         
         // Start the playback engine
@@ -45,6 +41,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
 
       pause: () => {
         Tone.getTransport().pause();
+        Tone.getTransport().cancel(); // Clear pending next-note events to prevent duplication on resume
         set({ 
           playbackState: PlaybackState.PAUSED,
           activeNotes: [],
@@ -185,10 +182,12 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
               entry.Notes.forEach((note: any) => {
                 if (note.Pitch) {
                   const freq = note.Pitch.Frequency;
-                  sampler?.triggerAttackRelease(freq, audioDuration, Tone.now());
-                  
-                  const midi = Math.round(12 * Math.log2(freq / 440) + 69);
-                  midis.push(midi);
+                  if (freq > 0) {
+                    sampler?.triggerAttackRelease(freq, audioDuration, Tone.now());
+                    
+                    const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+                    midis.push(midi);
+                  }
                 }
               });
             }

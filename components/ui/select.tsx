@@ -13,7 +13,7 @@ export interface SelectOption {
 }
 
 export interface SelectProps {
-  value?: string;
+  value?: string | null;
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
@@ -34,7 +34,7 @@ export function Select({
   const selectedOption = options.find(opt => opt.id === value);
 
   return (
-    <BaseSelect.Root value={value} onValueChange={(val: string | null) => val && onChange(val)} disabled={disabled}>
+    <BaseSelect.Root value={value ?? null} onValueChange={(val: string | null) => val && onChange(val)} disabled={disabled}>
       <BaseSelect.Trigger
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200',

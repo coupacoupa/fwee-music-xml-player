@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Upload, Music2, ZoomIn, ZoomOut, LogOut, Trash2, FileMusic } from "lucide-react";
+import { Upload, Music2, ZoomIn, ZoomOut, LogOut, Trash2, FileMusic, Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
-import { Play, Pause, RefreshCcw, Keyboard, Timer } from "lucide-react";
+import { Play, Pause, RefreshCcw, Keyboard, Timer, SkipBack, Minus, Plus, Activity, Music, Square } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { PianoKeyboard } from "@/components/piano-keyboard";
 import { usePlaybackStore } from "@/lib/stores/playback-store";
 import { useSheetStore } from "@/lib/stores/sheet-store";
@@ -13,13 +14,16 @@ import { useAudioEngine } from "@/lib/hooks/use-audio-engine";
 import { usePlaybackSync } from "@/lib/hooks/use-playback-sync";
 import { formatTime } from "@/lib/utils/time-utils";
 import { PlaybackState } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Select, type SelectOption } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { ContextMenu, type MenuItem } from "@/components/ui/menu";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { UserAvatar, type UserAvatarMenuItem } from "@/components/ui/user-avatar";
+import { ScoreManager } from "@/components/sheet-music/score-manager";
 
 const MusicXMLDisplay = dynamic(
   () => import("@/components/sheet-music/musicxml-display").then((mod) => mod.MusicXMLDisplay),
@@ -49,6 +53,7 @@ export default function Home() {
     setBpm,
     setOsmd,
   } = usePlaybackStore();
+
   
   // Sheet store
   const {
@@ -67,10 +72,18 @@ export default function Home() {
   // UI store
   const {
     isKeyboardVisible,
+    isScoreManagerOpen,
+    showPlaybackControls,
+    showBPM,
+    showTimer,
     zoom,
     pianoKeySize,
     contextMenu,
     toggleKeyboard,
+    setScoreManagerOpen,
+    togglePlaybackControls,
+    toggleBPM,
+    toggleTimer,
     setZoom,
     setPianoKeySize,
     showContextMenu,
@@ -179,27 +192,103 @@ export default function Home() {
         },
       },
       {
-        id: 'rename',
-        label: 'Rename',
-        onClick: () => hideContextMenu(),
-      },
-      {
-        id: 'divider',
-        label: '',
-        divider: true,
-      },
-      {
-        id: 'delete',
-        label: 'Remove from Library',
-        icon: <Trash2 className="w-3.5 h-3.5" />,
-        variant: 'danger' as const,
+        id: 'manage',
+        label: 'Manage Library...',
         onClick: () => {
-          handleDeleteRequest(contextMenu.sheetId);
           hideContextMenu();
+          setScoreManagerOpen(true);
         },
       },
     ];
-  }, [contextMenu, sheets, hideContextMenu]);
+  }, [contextMenu, sheets, hideContextMenu, setScoreManagerOpen, selectSheet]);
+
+  // File menu items
+  const fileMenuItems = useMemo<DropdownMenuItem[]>(() => [
+    {
+      id: 'manage',
+      label: 'Manage Library...',
+      icon: <FileMusic className="w-3.5 h-3.5" />,
+      onClick: () => setScoreManagerOpen(true),
+    },
+  ], [setScoreManagerOpen]);
+
+  // View menu items
+  const viewMenuItems = useMemo<DropdownMenuItem[]>(() => [
+    {
+      id: 'keyboard',
+      label: 'Show Piano Keyboard',
+      icon: <Music className="w-3.5 h-3.5" />,
+      checked: isKeyboardVisible,
+      onClick: (e) => {
+        e.preventDefault();
+        toggleKeyboard();
+      },
+    },
+    {
+      id: 'playback',
+      label: 'Show Playback Controls',
+      icon: <Play className="w-3.5 h-3.5" />,
+      checked: showPlaybackControls,
+      onClick: (e) => {
+        e.preventDefault();
+        togglePlaybackControls();
+      },
+    },
+    {
+      id: 'timer',
+      label: 'Show Timer',
+      icon: <Timer className="w-3.5 h-3.5" />,
+      checked: showTimer,
+      onClick: (e) => {
+        e.preventDefault();
+        toggleTimer();
+      },
+    },
+    {
+      id: 'bpm',
+      label: 'Show BPM Control',
+      icon: <Activity className="w-3.5 h-3.5" />,
+      checked: showBPM,
+      onClick: (e) => {
+        e.preventDefault();
+        toggleBPM();
+      },
+    },
+  ], [
+    isKeyboardVisible, 
+    showPlaybackControls, 
+    showTimer, 
+    showBPM, 
+    toggleKeyboard, 
+    togglePlaybackControls, 
+    toggleTimer, 
+    toggleBPM
+  ]);
+
+  // User menu items
+  const userMenuItems = useMemo<UserAvatarMenuItem[]>(() => [
+    {
+      id: 'settings',
+      label: 'Account Settings',
+      icon: <Settings className="w-3.5 h-3.5" />,
+      disabled: true,
+      onClick: () => {
+        // Future: Show account settings
+      },
+    },
+    {
+      id: 'divider',
+      label: '',
+      divider: true,
+    },
+    {
+      id: 'logout',
+      label: 'Log Out',
+      icon: <LogOut className="w-3.5 h-3.5" />,
+      variant: 'danger' as const,
+      onClick: signOut,
+    },
+  ], [signOut]);
 
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#f4f4f7]">
@@ -220,11 +309,9 @@ export default function Home() {
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
               Professional score management for piano practice. Sign in to access your library.
             </p>
-            <Button
+            <button
               onClick={signInWithGoogle}
-              variant="secondary"
-              size="md"
-              className="w-full"
+              className="w-full px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-[13px] hover:bg-blue-700 transition-all cursor-pointer shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" width="24" height="24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -233,32 +320,34 @@ export default function Home() {
                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Continue with Google
-            </Button>
+            </button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col h-screen overflow-hidden">
           {/* Top Menu Bar */}
-          <div className="h-9 bg-white border-b border-gray-200 flex items-center px-4 gap-4 text-[13px] select-none shrink-0 relative z-50">
+          <div className="h-9 bg-white border-b border-gray-200 flex items-center px-4 gap-1 text-[13px] select-none shrink-0 relative z-50">
             <div className="flex items-center gap-2 font-bold text-blue-600 mr-2">
               <div className="w-4 h-4 bg-blue-600 rounded-[3px] flex items-center justify-center">
                 <Music2 className="w-2.5 h-2.5 text-white" />
               </div>
               Piano&nbsp;Coach
             </div>
-            <button className="px-2 py-1 hover:bg-gray-100 rounded transition-colors">File</button>
-            <button className="px-2 py-1 hover:bg-gray-100 rounded transition-colors hidden sm:block">Edit</button>
-            <button className="px-2 py-1 hover:bg-gray-100 rounded transition-colors">View</button>
-            <button className="px-2 py-1 hover:bg-gray-100 rounded transition-colors hidden md:block">Score</button>
-            <button className="px-2 py-1 hover:bg-gray-100 rounded transition-colors hidden md:block">Window</button>
+            
+            <DropdownMenu label="File" items={fileMenuItems} />
+            <DropdownMenu label="View" items={viewMenuItems} />
+            
             <div className="flex-1" />
-            <div className="flex items-center gap-2 text-gray-400">
-               <span className="text-[11px] font-medium hidden sm:block">{user?.email}</span>
-            </div>
+            
+            <UserAvatar
+              name={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+              email={user?.email || ''}
+              menuItems={userMenuItems}
+            />
           </div>
 
           {/* Toolbar */}
-          <div className="h-14 bg-white border-b border-gray-200 flex items-center px-6 gap-4 shrink-0 shadow-sm z-[100] sticky top-0 no-scrollbar overflow-x-auto">
+          <div className="h-14 bg-white border-b border-gray-200 flex items-center px-6 gap-4 shrink-0 shadow-sm z-40 sticky top-0 no-scrollbar overflow-x-auto">
             
             {/* Sheet Library Select */}
             <Select
@@ -270,131 +359,104 @@ export default function Home() {
               options={sheetOptions}
               placeholder="Select Score…"
               disabled={sheetsLoading}
+              className="h-8 min-h-[32px]"
             />
             
             <div className="w-px h-6 bg-gray-200 mx-1" />
             
             {/* Playback Core */}
-            <div className="flex items-center gap-2">
-              <IconButton
-                onClick={reset}
-                variant="ghost"
-                icon={<RefreshCcw className="w-4 h-4" />}
-                label="Restart"
-              />
-              
-              <IconButton
-                onClick={togglePlayback}
-                disabled={!pianoLoaded}
-                variant="round"
-                icon={!pianoLoaded ? <Spinner size="sm" /> : (playbackState === PlaybackState.PLAYING ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />)}
-                label={!pianoLoaded ? "Loading Samples…" : (playbackState === PlaybackState.PLAYING ? "Pause" : "Play")}
-                className={playbackState === PlaybackState.PLAYING ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : ''}
-              />
-            </div>
+            {showPlaybackControls && (
+              <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
+                 <IconButton
+                  onClick={() => { reset(); play(); }}
+                  variant="secondary"
+                  icon={<SkipBack className="w-4 h-4 fill-current" />}
+                  label="Restart"
+                  className="rounded-lg w-8 h-8"
+                />
+
+                <IconButton
+                  onClick={reset}
+                  variant="secondary"
+                  icon={<Square className="w-3.5 h-3.5 fill-current" />}
+                  label="Stop"
+                  className="rounded-lg w-8 h-8"
+                />
+                
+                <IconButton
+                  onClick={togglePlayback}
+                  disabled={!pianoLoaded}
+                  variant="secondary"
+                  icon={!pianoLoaded ? <Spinner size="sm" /> : (playbackState === PlaybackState.PLAYING ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />)}
+                  label={!pianoLoaded ? "Loading Samples…" : (playbackState === PlaybackState.PLAYING ? "Pause" : "Play")}
+                  className="rounded-lg h-8 w-8 font-semibold shadow-sm transition-all active:scale-95"
+                />
+              </div>
+            )}
 
             {/* Timer */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-md font-mono text-sm text-gray-600 select-none min-w-[100px] justify-center">
-              <Timer className="w-3.5 h-3.5 opacity-50" />
-              <span>{formatTime(position.currentTime)}</span>
-            </div>
+            {showTimer && (
+              <div className="flex items-center gap-2 h-8 px-4 bg-gray-50 border border-gray-100 rounded-lg font-mono text-sm text-gray-600 select-none min-w-[100px] justify-center animate-in fade-in zoom-in-95 duration-200">
+                <Timer className="w-3.5 h-3.5 opacity-50" />
+                <span>{formatTime(position.currentTime)}</span>
+              </div>
+            )}
 
             <div className="w-px h-6 bg-gray-200 mx-1" />
 
             {/* BPM Control */}
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">BPM</span>
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
-                <IconButton
-                  onClick={() => handleBpmChange(Math.max(20, bpm - 5))}
-                  variant="ghost"
-                  size="sm"
-                  icon={<span className="font-bold">-</span>}
-                  label="Decrease BPM"
-                  className="hover:bg-white"
-                />
-                <span className="text-[13px] font-bold text-gray-700 w-10 text-center select-none">{bpm}</span>
-                <IconButton
-                  onClick={() => handleBpmChange(Math.min(300, bpm + 5))}
-                  variant="ghost"
-                  size="sm"
-                  icon={<span className="font-bold">+</span>}
-                  label="Increase BPM"
-                  className="hover:bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-
-            {/* View Controls */}
-            <div className="flex items-center gap-2">
-              <IconButton
-                onClick={toggleKeyboard}
-                variant="ghost"
-                icon={<Keyboard className="w-5 h-5" />}
-                label="Toggle Keyboard"
-                className={isKeyboardVisible ? 'bg-blue-50 text-blue-600' : ''}
-              />
-              
-              {/* Piano Key Size Control */}
-              {isKeyboardVisible && selectedSheet && (
-                <Slider
-                  value={pianoKeySize}
-                  onChange={setPianoKeySize}
-                  min={20}
-                  max={50}
-                  label="Size"
-                  className="bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200"
-                />
-              )}
-              
-              {selectedSheet && (
+            {showBPM && (
+              <div className="flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">BPM</span>
                 <div className="flex items-center gap-0.5 bg-gray-50 rounded-lg p-0.5 border border-gray-200">
                   <IconButton
-                    onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
+                    onClick={() => handleBpmChange(Math.max(20, bpm - 5))}
                     variant="ghost"
                     size="sm"
-                    icon={<ZoomOut className="w-4 h-4" />}
-                    label="Zoom Out"
+                    icon={<Minus className="w-3.5 h-3.5" />}
+                    label="Decrease BPM"
                     className="hover:bg-white"
                   />
-                  <span className="text-[11px] font-bold text-gray-600 w-12 text-center select-none">{Math.round(zoom * 100)}%</span>
+                  <span className="text-[13px] font-bold text-gray-700 w-10 text-center select-none">{bpm}</span>
                   <IconButton
-                    onClick={() => setZoom(Math.min(3, zoom + 0.1))}
+                    onClick={() => handleBpmChange(Math.min(300, bpm + 5))}
                     variant="ghost"
                     size="sm"
-                    icon={<ZoomIn className="w-4 h-4" />}
-                    label="Zoom In"
+                    icon={<Plus className="w-3.5 h-3.5" />}
+                    label="Increase BPM"
                     className="hover:bg-white"
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div className="flex-1" />
+            <div className="w-px h-6 bg-gray-200 mx-1" />
 
-            <div className="flex items-center gap-2">
-              <label>
-                <Button
-                  variant="secondary"
+            {/* Zoom Controls - Only show when score is loaded */}
+            {selectedSheet && (
+              <div className="flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">ZOOM</span>
+                <div className="flex items-center gap-0.5 bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                <IconButton
+                  onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
+                  variant="ghost"
                   size="sm"
-                  disabled={uploading}
-                  className="cursor-pointer"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Upload XML</span>
-                </Button>
-                <input type="file" accept=".xml,.musicxml,.mxl" onChange={handleFileSelect} className="hidden" disabled={uploading} />
-              </label>
-              
-              <IconButton
-                onClick={signOut}
-                variant="danger"
-                icon={<LogOut className="w-5 h-5" />}
-                label="Log Out"
-              />
-            </div>
+                  icon={<ZoomOut className="w-4 h-4" />}
+                  label="Zoom Out"
+                  className="hover:bg-white"
+                />
+                <span className="text-[11px] font-bold text-gray-600 w-12 text-center select-none">{Math.round(zoom * 100)}%</span>
+                <IconButton
+                  onClick={() => setZoom(Math.min(3, zoom + 0.1))}
+                  variant="ghost"
+                  size="sm"
+                  icon={<ZoomIn className="w-4 h-4" />}
+                  label="Zoom In"
+                  className="hover:bg-white"
+                />
+              </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -442,10 +504,12 @@ export default function Home() {
                     <p className="text-gray-500 text-[13px] leading-relaxed mb-8">
                       Piano Coach Studio works with MusicXML and MXL files. Open a score from your library or import a new file to begin practice.
                     </p>
-                    <label className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-[13px] hover:bg-blue-700 transition-all cursor-pointer shadow-lg active:scale-[0.98]">
+                    <button 
+                      onClick={() => setScoreManagerOpen(true)}
+                      className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold text-[13px] hover:bg-blue-700 transition-all cursor-pointer shadow-lg active:scale-[0.98]"
+                    >
                       Import New Music Score
-                      <input type="file" accept=".xml,.musicxml,.mxl" onChange={handleFileSelect} className="hidden" />
-                    </label>
+                    </button>
                   </div>
                 )}
               </main>
@@ -461,26 +525,10 @@ export default function Home() {
         </div>
       )}
       
-      {/* Dialogs */}
-      <Dialog
-        open={uploadErrorDialog.open}
-        onOpenChange={(open) => setUploadErrorDialog({ open, message: '' })}
-        title="Upload Error"
-        description={uploadErrorDialog.message}
-        confirmLabel="OK"
-        cancelLabel="Close"
-        onConfirm={() => setUploadErrorDialog({ open: false, message: '' })}
-      />
-      
-      <Dialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, sheetId: null })}
-        title="Delete Sheet"
-        description="Are you sure you want to delete this sheet? This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onConfirm={handleDeleteConfirm}
-        variant="danger"
+      {/* Score Manager Dialog */}
+      <ScoreManager 
+        open={isScoreManagerOpen} 
+        onOpenChange={setScoreManagerOpen} 
       />
     </div>
   );

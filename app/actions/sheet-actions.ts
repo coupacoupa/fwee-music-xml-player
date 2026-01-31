@@ -134,3 +134,21 @@ export async function deleteSheet(sheetId: string, userId: string) {
     return { success: false, error: 'Failed to delete sheet' };
   }
 }
+
+export async function renameSheet(sheetId: string, userId: string, newTitle: string) {
+  try {
+    const [sheet] = await db.select().from(sheets).where(eq(sheets.id, sheetId));
+    if (!sheet || sheet.userId !== userId) {
+      throw new Error('Sheet not found or unauthorized');
+    }
+
+    await db.update(sheets)
+      .set({ title: newTitle })
+      .where(eq(sheets.id, sheetId));
+
+    return { success: true };
+  } catch (error) {
+    console.error('Rename failed:', error);
+    return { success: false, error: 'Failed to rename sheet' };
+  }
+}

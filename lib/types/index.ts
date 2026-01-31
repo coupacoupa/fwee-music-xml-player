@@ -77,6 +77,7 @@ export interface SheetStoreState {
   selectSheet: (sheet: Sheet | null) => void;
   uploadSheet: (formData: FormData, userId: string) => Promise<void>;
   deleteSheet: (sheetId: string, userId: string) => Promise<void>;
+  renameSheet: (sheetId: string, userId: string, newTitle: string) => Promise<void>;
   loadSheetContent: (sheetId: string) => Promise<void>;
   setMusicXmlUrl: (url: string | null) => void;
 }
@@ -84,12 +85,20 @@ export interface SheetStoreState {
 export interface UIStoreState {
   // State
   isKeyboardVisible: boolean;
+  isScoreManagerOpen: boolean;
+  showPlaybackControls: boolean;
+  showBPM: boolean;
+  showTimer: boolean;
   zoom: number;
   pianoKeySize: number;
   contextMenu: ContextMenuState | null;
   
   // Actions
   toggleKeyboard: () => void;
+  setScoreManagerOpen: (open: boolean) => void;
+  togglePlaybackControls: () => void;
+  toggleBPM: () => void;
+  toggleTimer: () => void;
   setZoom: (zoom: number) => void;
   setPianoKeySize: (size: number) => void;
   showContextMenu: (x: number, y: number, sheetId: string) => void;

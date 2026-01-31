@@ -93,6 +93,29 @@ export const useSheetStore = create<SheetStoreState>()(
         }
       },
 
+      renameSheet: async (sheetId: string, userId: string, newTitle: string) => {
+        try {
+          const { renameSheet } = await import('@/app/actions/sheet-actions');
+          const result = await renameSheet(sheetId, userId, newTitle);
+          
+          if (result.success) {
+            // Reload sheets to reflect the new name
+            await get().loadSheets(userId);
+            
+            // If the renamed sheet was selected, update selection
+            const { selectedSheet } = get();
+            if (selectedSheet?.id === sheetId) {
+              set({ selectedSheet: { ...selectedSheet, title: newTitle } });
+            }
+          } else {
+            throw new Error(result.error || 'Rename failed');
+          }
+        } catch (error) {
+          console.error('Rename error:', error);
+          throw error;
+        }
+      },
+
       loadSheetContent: async (sheetId: string) => {
         set({ contentLoading: true });
         
