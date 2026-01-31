@@ -47,6 +47,12 @@ body {
   border-right: 1px solid var(--border-subtle);
 }
 
+@layer base {
+  img[id^="cursorImg-"] {
+    height: attr(height px) !important;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
@@ -83,10 +89,4 @@ body {
   margin-bottom: 2rem;
   width: 100%;
   max-width: 1000px;
-}
-
-/* OSMD Container - minimal positioning for cursor to work */
-.osmd-container {
-  position: relative;
-  width: 100%;
 }

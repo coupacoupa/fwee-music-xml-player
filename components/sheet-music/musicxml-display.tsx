@@ -88,13 +88,7 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
             drawPartNames: true,
             drawFingerings: true,
             drawMeasureNumbers: true,
-            // @ts-ignore - Handle version differences
-            cursorsOptions: [{
-              type: 0, // Standard cursor (wider and more visible than type 1)
-              color: '#ff0000',
-              alpha: 0.5,
-              follow: true,
-            }]
+
           });
         
         // Load and Render
@@ -102,42 +96,10 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
         osmdRef.current.Zoom = zoom;
         osmdRef.current.render();
         
-        // Debug: Check if cursor exists
-        console.log('🔍 OSMD Debug:');
-        console.log('- OSMD instance:', osmdRef.current);
-        console.log('- Cursor object:', osmdRef.current.cursor);
-        console.log('- Cursors array:', osmdRef.current.cursors);
-        
         // Enable and show cursor after render
         if (osmdRef.current.cursor) {
-          console.log('✅ Cursor exists! Showing and resetting...');
           osmdRef.current.cursor.show();
           osmdRef.current.cursor.reset();
-          
-          // Check cursor element in DOM
-          const cursorEl = osmdRef.current.cursor.cursorElement;
-          console.log('- Cursor element:', cursorEl);
-          console.log('- Cursor element ID:', cursorEl?.id);
-          console.log('- Cursor element computed style:', cursorEl ? window.getComputedStyle(cursorEl) : 'N/A');
-          console.log('- Cursor hidden state:', osmdRef.current.cursor.hidden);
-          
-          const c = osmdRef.current.cursor as any;
-          if (c.update) c.update();
-          
-          // Try to find cursor in DOM
-          setTimeout(() => {
-            const cursorInDom = document.getElementById(cursorEl?.id || 'cursorImg-0');
-            console.log('- Cursor found in DOM:', cursorInDom);
-            if (cursorInDom) {
-              console.log('- Cursor parent:', cursorInDom.parentElement);
-              console.log('- Cursor display:', window.getComputedStyle(cursorInDom).display);
-              console.log('- Cursor visibility:', window.getComputedStyle(cursorInDom).visibility);
-              console.log('- Cursor position:', window.getComputedStyle(cursorInDom).position);
-              console.log('- Cursor zIndex:', window.getComputedStyle(cursorInDom).zIndex);
-            }
-          }, 100);
-        } else {
-          console.error('❌ Cursor does not exist!');
         }
         
         if (onOsmdInit) onOsmdInit(osmdRef.current);
