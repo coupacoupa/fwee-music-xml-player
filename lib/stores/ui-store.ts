@@ -6,17 +6,12 @@ export const useUIStore = create<UIStoreState>()(
   devtools(
     (set) => ({
       // Initial State
-      isSidebarOpen: true,
       isKeyboardVisible: true,
       zoom: 1.0,
       pianoKeySize: 28,
       contextMenu: null,
 
       // Actions
-      toggleSidebar: () => {
-        set((state) => ({ isSidebarOpen: !state.isSidebarOpen }));
-      },
-
       toggleKeyboard: () => {
         set((state) => ({ isKeyboardVisible: !state.isKeyboardVisible }));
       },

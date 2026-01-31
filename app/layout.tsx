@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Piano Coach",
   description: "Interactive MusicXML viewer and piano practice assistant",
+  themeColor: "#f4f4f7",
 };
 
 export default function RootLayout({
@@ -24,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ colorScheme: 'light' }}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

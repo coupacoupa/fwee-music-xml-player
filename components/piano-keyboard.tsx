@@ -60,9 +60,9 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
           key={midi}
           onMouseDown={() => handleKeyDown(midi)}
           className={`
-            relative flex-shrink-0 cursor-pointer select-none transition-all duration-75
+            relative flex-shrink-0 cursor-pointer select-none touch-manipulation transition-[background,transform,box-shadow]
             ${black 
-              ? `bg-gradient-to-b from-gray-900 via-gray-800 to-black -mx-[${blackKeyWidth/2}px] z-10 shadow-2xl` 
+              ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-black z-10 shadow-2xl' 
               : 'bg-gradient-to-b from-gray-50 via-white to-gray-100 border-r border-gray-300 shadow-inner'
             }
             ${combinedActive 
@@ -82,6 +82,7 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
             marginRight: black ? `-${blackKeyWidth/2}px` : '0',
             borderBottomLeftRadius: black ? '4px' : '6px',
             borderBottomRightRadius: black ? '4px' : '6px',
+            touchAction: 'manipulation',
           }}
         >
           {/* Reflection highlight for white keys */}

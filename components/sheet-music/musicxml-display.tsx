@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { PointF2D } from 'opensheetmusicdisplay';
-import { Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
+import { Spinner } from '@/components/ui/spinner';
 
 interface MusicXMLDisplayProps {
   url: string;
@@ -189,7 +189,7 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
     <div className="musicxml-display flex flex-col w-full h-full min-h-[500px] relative">
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/50 backdrop-blur-sm z-10 rounded-xl">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-400 mb-4" />
+          <Spinner size="lg" className="text-blue-400 mb-4" />
           <p className="text-gray-300 font-medium text-lg">Rendering sheet music...</p>
         </div>
       )}

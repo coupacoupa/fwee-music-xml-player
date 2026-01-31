@@ -83,14 +83,12 @@ export interface SheetStoreState {
 
 export interface UIStoreState {
   // State
-  isSidebarOpen: boolean;
   isKeyboardVisible: boolean;
   zoom: number;
   pianoKeySize: number;
   contextMenu: ContextMenuState | null;
   
   // Actions
-  toggleSidebar: () => void;
   toggleKeyboard: () => void;
   setZoom: (zoom: number) => void;
   setPianoKeySize: (size: number) => void;
