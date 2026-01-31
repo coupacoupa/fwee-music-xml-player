@@ -360,6 +360,7 @@ export default function Home() {
               placeholder="Select Score…"
               disabled={sheetsLoading}
               className="h-8 min-h-[32px]"
+              searchable={true}
             />
             
             <div className="w-px h-6 bg-gray-200 mx-1" />

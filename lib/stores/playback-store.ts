@@ -30,6 +30,11 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
         }
 
         await Tone.start();
+
+        // Sync Transport to current cursor position
+        const currentTimestamp = osmd.cursor.iterator.currentTimeStamp.RealValue;
+        const currentSeconds = (currentTimestamp * 4) * (60 / get().bpm);
+        Tone.getTransport().seconds = currentSeconds;
         Tone.getTransport().start();
         
         // Show cursor
@@ -211,24 +216,32 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
 
         // Calculate duration to next note
         const currentTimestamp = iterator.currentTimeStamp.RealValue;
-        let durationToNext = 0.25;
-        
-        const timestamps = currentVoiceEntries
-          .map((v: any) => v.Notes?.[0]?.Length?.RealValue)
-          .filter((d: number) => d > 0);
-          
-        if (timestamps.length > 0) {
-          durationToNext = Math.min(...timestamps);
-        } else if (currentVoiceEntries.length === 0) {
-          durationToNext = 0.125; // Rest
-        }
+        let durationToNext = 0;
+
+        // Verify if we have a valid next timestamp from iterator
+        if (!iterator.EndReached) {
+           // Create a clone to check next timestamp
+           const nextIterator = iterator.clone();
+           nextIterator.moveToNext();
+           if (!nextIterator.EndReached) {
+             durationToNext = nextIterator.currentTimeStamp.RealValue - currentTimestamp;
+           } else {
+             // Fallback if at end
+             const timestamps = currentVoiceEntries
+              .map((v: any) => v.Notes?.[0]?.Length?.RealValue)
+              .filter((d: number) => d > 0);
+             if (timestamps.length > 0) durationToNext = Math.min(...timestamps);
+             else durationToNext = 0.25;
+           }
+        } 
+
+        if (durationToNext <= 0) durationToNext = 0.125; // Safety fallback
 
         // Calculate time in seconds
         const currentBpm = Tone.getTransport().bpm.value;
         const currentSeconds = (currentTimestamp * 4) * (60 / currentBpm);
         const nextSeconds = ((currentTimestamp + durationToNext) * 4) * (60 / currentBpm);
-        const durationSeconds = nextSeconds - currentSeconds;
-
+        
         // Update current time
         set({
           position: {
@@ -237,12 +250,11 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
           },
         });
 
-
         // Schedule next note
         Tone.getTransport().scheduleOnce(() => {
           osmd.cursor.next();
           get().scheduleNextNote();
-        }, `+${durationSeconds - 0.05}`);
+        }, nextSeconds);
       },
     }),
     { name: 'PlaybackStore' }

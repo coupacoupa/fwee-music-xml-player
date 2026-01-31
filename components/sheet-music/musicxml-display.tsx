@@ -156,15 +156,6 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
         </div>
       )}
 
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
-          <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-xl max-w-md">
-            <p className="text-red-400 font-medium mb-2">Error</p>
-            <p className="text-gray-400 text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-
       <div 
         ref={containerRef} 
         onClick={handleContainerClick}
