@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #f4f4f7;
+  --foreground: #1d1d1f;
+  
+  /* Pro App Palette */
+  --app-bg: #f4f4f7;
+  --chrome-bg: #ffffff;
+  --accent-primary: #007aff; /* Apple Blue */
+  --accent-secondary: #5856d6;
+  --border-subtle: #e5e5e7;
+  --text-main: #1d1d1f;
+  --text-muted: #86868b;
+  
+  /* Sheet Paper */
+  --sheet-bg: #ffffff;
+  --sheet-shadow: 0 10px 30px -10px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.05);
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  overflow: hidden; /* Fix body scroll */
+}
+
+/* Glassmorphism / Desktop App Chrome */
+.app-chrome {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.sidebar-pro {
+  background: #fbfbfd;
+  border-right: 1px solid var(--border-subtle);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d1d6;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aeaeb2;
+}
+
+/* Main App Layout Fixes */
+.main-viewport {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  width: 100%;
+}
+
+/* Sheet Paper Styling */
+.sheet-container {
+  background-color: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* OSMD Container - minimal positioning for cursor to work */
+.osmd-container {
+  position: relative;
+  width: 100%;
+}
