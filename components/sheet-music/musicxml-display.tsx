@@ -25,41 +25,111 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
   usePracticeMode({ osmd: osmdRef.current, enabled: true });
 
 
+  /* 
+   * HELPER: Calculate click coordinates in OSMD internal units (approx 10px per unit)
+   * Uses SVG matrix transformation to be robust against zoom and layout changes.
+   */
+  const getClickCoordinates = (e: React.MouseEvent, container: HTMLDivElement): PointF2D | null => {
+    const svg = container.querySelector('svg');
+    if (!svg) return null;
+
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    
+    // Transform screen -> SVG coordinates
+    const svgP = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+    
+    // OSMD factor: 1 unit = 10 pixels
+    return new PointF2D(svgP.x / 10.0, svgP.y / 10.0);
+  };
+
+  /*
+   * HELPER: Find the music system (line of music) closest vertically to the click.
+   * "Snaps" the click to a specific system to implement timeline-like behavior.
+   */
+  const findClosestSystem = (graphicSheet: any, unitY: number): any | null => {
+     if (!graphicSheet || !graphicSheet.MusicPages) return null;
+
+     let closestSystem: any = null;
+     let minDistance = Number.MAX_VALUE;
+
+     for (const page of graphicSheet.MusicPages) {
+         for (const system of page.MusicSystems) {
+             const pos = system.PositionAndShape.AbsolutePosition;
+             const border = system.PositionAndShape.BorderMarginBottom + system.PositionAndShape.BorderMarginTop;
+             const systemCenterY = pos.y + (border / 2);
+             
+             const dist = Math.abs(unitY - systemCenterY);
+             if (dist < minDistance) {
+                 minDistance = dist;
+                 closestSystem = system;
+             }
+         }
+     }
+     return closestSystem;
+  };
+
+  /*
+   * HELPER: Find the note horizontally closest to the click within a specific system.
+   * Iterates all notes in the system to guarantee finding a note (ignoring hit-test limitations).
+   */
+  const findClosestNoteInSystem = (system: any, unitX: number): any | null => {
+      let bestNote: any = null;
+      let minXDist = Number.MAX_VALUE;
+
+      const measures: any[][] = system.GraphicalMeasures;
+      for (const measureColumn of measures) {
+          for (const measure of measureColumn) {
+              if (!measure) continue;
+              
+              for (const entry of measure.staffEntries) {
+                  for (const voiceEntry of entry.graphicalVoiceEntries) {
+                      for (const note of voiceEntry.notes) {
+                          const notePos = note.PositionAndShape?.AbsolutePosition;
+                          if (notePos) {
+                              const dist = Math.abs(unitX - notePos.x);
+                              if (dist < minXDist) {
+                                  minXDist = dist;
+                                  bestNote = note;
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+      return bestNote;
+  };
+
   const handleContainerClick = (e: React.MouseEvent) => {
-    if (!osmdRef.current || isLoading || !enableClickInteraction) return;
+    if (!osmdRef.current || isLoading || !enableClickInteraction || !containerRef.current) return;
 
     try {
-      // Calculate click position relative to the container
-      const x = e.nativeEvent.offsetX;
-      const y = e.nativeEvent.offsetY;
-      const point = new PointF2D(x, y);
-
-      // Find nearest object
+      const coords = getClickCoordinates(e, containerRef.current);
+      if (!coords) return;
+      
       const graphicSheet = osmdRef.current.GraphicSheet as any;
-      if (!graphicSheet || !graphicSheet.GetNearestGraphicalObject) return;
       
-      const clickObj = graphicSheet.GetNearestGraphicalObject(point);
-      
-      if (clickObj) {
-        // Determine timestamp from the object
-        let timestamp: any = null;
-        
-        if ((clickObj as any).sourceNote) {
-          timestamp = (clickObj as any).sourceNote.SourceMeasure.AbsoluteTimestamp;
-        } else if ((clickObj as any).sourceStaffEntry) {
-          timestamp = (clickObj as any).sourceStaffEntry.AbsoluteTimestamp;
-        } else if ((clickObj as any).SourceMeasure) {
-          timestamp = (clickObj as any).SourceMeasure.AbsoluteTimestamp;
-        }
+      // 1. Find the system (vertical snap)
+      const closestSystem = findClosestSystem(graphicSheet, coords.y);
+      if (!closestSystem) return;
 
-        if (timestamp) {
-          // Use store's seekToTimestamp action
-          const { seekToTimestamp } = usePlaybackStore.getState();
-          seekToTimestamp(timestamp.RealValue);
-        }
+      // 2. Find the note in that system (horizontal snap)
+      const bestNote = findClosestNoteInSystem(closestSystem, coords.x);
+      
+      if (bestNote && bestNote.sourceNote) {
+           const note = bestNote.sourceNote;
+           const timestamp = note.getAbsoluteTimestamp ? note.getAbsoluteTimestamp() : note.AbsoluteTimestamp;
+           
+           if (timestamp) {
+               const { seekToTimestamp } = usePlaybackStore.getState();
+               seekToTimestamp(timestamp.RealValue);
+           }
       }
+
     } catch (err) {
-      console.warn("Click seek failed", err);
+      console.warn("Click seek logic failed", err);
     }
   };
 
