@@ -5,6 +5,7 @@ import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { PointF2D } from 'opensheetmusicdisplay';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
 import { Spinner } from '@/components/ui/spinner';
+import { usePracticeMode } from '@/lib/hooks/use-practice-mode';
 
 interface MusicXMLDisplayProps {
   url: string;
@@ -19,6 +20,8 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Enable practice mode (auto-advance cursor on correct note)
+  usePracticeMode({ osmd: osmdRef.current, enabled: true });
 
 
   const handleContainerClick = (e: React.MouseEvent) => {

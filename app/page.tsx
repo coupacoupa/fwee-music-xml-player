@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { Upload, Music2, ZoomIn, ZoomOut, LogOut, Trash2, FileMusic, Settings } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { Music2, ZoomIn, ZoomOut, LogOut, FileMusic, Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
-import { Play, Pause, RefreshCcw, Keyboard, Timer, SkipBack, Minus, Plus, Activity, Music, Square } from "lucide-react";
+import { Play, Pause, Timer, SkipBack, Minus, Plus, Activity, Music, Square, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PianoKeyboard } from "@/components/piano-keyboard";
 import { usePlaybackStore } from "@/lib/stores/playback-store";
@@ -12,18 +12,18 @@ import { useSheetStore } from "@/lib/stores/sheet-store";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { useAudioEngine } from "@/lib/hooks/use-audio-engine";
 import { usePlaybackSync } from "@/lib/hooks/use-playback-sync";
+import { useMicInput } from "@/lib/hooks/use-mic-input";
+import { useCoachStore } from "@/lib/stores/coach-store";
 import { formatTime } from "@/lib/utils/time-utils";
 import { PlaybackState } from "@/lib/types";
 import { IconButton } from "@/components/ui/icon-button";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { ContextMenu, type MenuItem } from "@/components/ui/menu";
 import { Spinner } from "@/components/ui/spinner";
-import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { UserAvatar, type UserAvatarMenuItem } from "@/components/ui/user-avatar";
 import { ScoreManager } from "@/components/sheet-music/score-manager";
+import { PracticeToolbar } from "@/components/sheet-music/practice-toolbar";
 
 const MusicXMLDisplay = dynamic(
   () => import("@/components/sheet-music/musicxml-display").then((mod) => mod.MusicXMLDisplay),
@@ -32,10 +32,6 @@ const MusicXMLDisplay = dynamic(
 
 export default function Home() {
   const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
-  
-  // Dialog states
-  const [uploadErrorDialog, setUploadErrorDialog] = useState<{open: boolean; message: string}>({ open: false, message: '' });
-  const [deleteDialog, setDeleteDialog] = useState<{open: boolean; sheetId: string | null}>({ open: false, sheetId: null });
   
   // Initialize audio engine
   useAudioEngine();
@@ -62,11 +58,8 @@ export default function Home() {
     musicXmlUrl,
     loading: sheetsLoading,
     contentLoading,
-    uploading,
     loadSheets,
     selectSheet,
-    uploadSheet,
-    deleteSheet,
   } = useSheetStore();
   
   // UI store
@@ -85,10 +78,13 @@ export default function Home() {
     toggleBPM,
     toggleTimer,
     setZoom,
-    setPianoKeySize,
-    showContextMenu,
     hideContextMenu,
   } = useUIStore();
+
+  // Mic recording
+  const { startRecording, stopRecording } = useMicInput();
+  const { isRecording, setRecording } = useCoachStore();
+
 
   // Load sheets when user logs in
   useEffect(() => {
@@ -106,54 +102,6 @@ export default function Home() {
     return () => window.removeEventListener('click', handleClick);
   }, [hideContextMenu]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    const validExtensions = ['xml', 'musicxml', 'mxl'];
-    
-    if (!validExtensions.includes(extension || '')) {
-      setUploadErrorDialog({ 
-        open: true, 
-        message: 'Please select a valid MusicXML file (.xml, .musicxml, or .mxl)' 
-      });
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', user.id);
-
-      await uploadSheet(formData, user.id);
-    } catch (err) {
-      setUploadErrorDialog({ 
-        open: true, 
-        message: 'Upload failed. Please try again.' 
-      });
-    } finally {
-      e.target.value = '';
-    }
-  };
-
-  const handleDeleteRequest = (sheetId: string) => {
-    setDeleteDialog({ open: true, sheetId });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!user || !deleteDialog.sheetId) return;
-    
-    try {
-      await deleteSheet(deleteDialog.sheetId, user.id);
-    } catch (err) {
-      setUploadErrorDialog({ 
-        open: true, 
-        message: 'Failed to delete sheet. Please try again.' 
-      });
-    }
-  };
-
   const togglePlayback = async () => {
     if (!pianoLoaded) return;
     
@@ -166,6 +114,16 @@ export default function Home() {
 
   const handleBpmChange = (newBpm: number) => {
     setBpm(newBpm);
+  };
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+      setRecording(false);
+    } else {
+      await startRecording();
+      setRecording(true);
+    }
   };
 
   // Convert sheets to SelectOptions
@@ -392,6 +350,20 @@ export default function Home() {
                   label={!pianoLoaded ? "Loading Samples…" : (playbackState === PlaybackState.PLAYING ? "Pause" : "Play")}
                   className="rounded-lg h-8 w-8 font-semibold shadow-sm transition-all active:scale-95"
                 />
+
+                <div className="w-px h-6 bg-gray-200 mx-1" />
+
+                {/* Recording button */}
+                <IconButton
+                  onClick={toggleRecording}
+                  variant={isRecording ? "primary" : "secondary"}
+                  icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  label={isRecording ? "Stop Recording" : "Start Recording"}
+                  className={cn(
+                    "rounded-lg h-8 w-8",
+                    isRecording && "animate-pulse ring-2 ring-red-500 bg-red-600 hover:bg-red-700"
+                  )}
+                />
               </div>
             )}
 
@@ -459,6 +431,8 @@ export default function Home() {
               </div>
             )}
           </div>
+
+          <PracticeToolbar />
 
           <div className="flex flex-1 overflow-hidden relative">
             {/* Context Menu */}
@@ -531,6 +505,8 @@ export default function Home() {
         open={isScoreManagerOpen} 
         onOpenChange={setScoreManagerOpen} 
       />
+
+
     </div>
   );
 }

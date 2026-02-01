@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { UIStoreState, ContextMenuState } from '@/lib/types';
+import type { UIStoreState } from '@/lib/types';
 
 export const useUIStore = create<UIStoreState>()(
   devtools(

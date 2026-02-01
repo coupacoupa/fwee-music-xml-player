@@ -3,8 +3,7 @@
 import * as React from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { cn } from '@/lib/utils/cn';
-import { Button } from '@/components/ui/button'; // Assuming Button component exists or using standard button
-import { Upload, FileMusic, Trash2, Edit2, X, Check, Loader2, Search } from 'lucide-react';
+import { Upload, Trash2, Edit2, X, Check, Loader2, Search } from 'lucide-react';
 import { useSheetStore } from '@/lib/stores/sheet-store';
 import { useAuth } from '@/lib/auth-context';
 import { IconButton } from '@/components/ui/icon-button';

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import * as Tone from 'tone';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
+import { useCoachStore } from '@/lib/stores/coach-store';
 import { isBlackKey, midiToFrequency } from '@/lib/utils/music-utils';
 
 interface PianoKeyboardProps {
@@ -12,8 +13,9 @@ interface PianoKeyboardProps {
 export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
   const [pressedKeys, setPressedKeys] = useState<Set<number>>(new Set());
   
-  // Get active notes from store
+  // Get active notes from stores
   const activeNotes = usePlaybackStore((state) => state.activeNotes);
+  const activeHints = useCoachStore((state) => state.activeHints);
   const { sampler, pianoLoaded } = usePlaybackStore();
   
   // 88 keys: MIDI 21 (A0) to 108 (C8)
@@ -50,25 +52,44 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
     for (let i = 0; i < totalKeys; i++) {
       const midi = startNote + i;
       const activeobj = activeNotes.find(note => note.midi === midi);
+      const hintObj = activeHints.find(hint => hint.midi === midi);
+      
       const isActive = !!activeobj;
+      const isHint = !!hintObj;
       const isPressed = pressedKeys.has(midi);
       const black = isBlackKey(midi);
-      const isLeftHand = activeobj?.staffIndex === 1; // Assuming 1 is left (bottom staff)
+      const isLeftHand = activeobj?.staffIndex === 1; // Playback logic
 
-      const combinedActive = isActive || isPressed;
+      const combinedActive = isActive || isPressed || isHint;
 
       // Color logic
-      // Default (Right Hand / Pressed): Blue
-      // Left Hand: Emerald/Green
-      const activeColorClass = isLeftHand 
-        ? (black 
-            ? '!bg-gradient-to-b !from-emerald-600 !via-emerald-500 !to-emerald-700 shadow-[0_0_20px_rgba(16,185,129,0.8)]' 
-            : '!bg-gradient-to-b !from-emerald-200 !via-emerald-100 !to-emerald-50 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
-          )
-        : (black 
-            ? '!bg-gradient-to-b !from-blue-600 !via-blue-500 !to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.8)]' 
-            : '!bg-gradient-to-b !from-blue-200 !via-blue-100 !to-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
-          );
+      let activeColorClass = '';
+      
+      if (isHint && hintObj) {
+        // Hint: No background change, just Dot
+        activeColorClass = '';
+      } else {
+        // Standard Playback/Press Colors
+        activeColorClass = isLeftHand 
+            ? (black 
+                ? '!bg-gradient-to-b !from-emerald-600 !via-emerald-500 !to-emerald-700 shadow-[0_0_20px_rgba(16,185,129,0.8)]' 
+                : '!bg-gradient-to-b !from-emerald-200 !via-emerald-100 !to-emerald-50 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+              )
+            : (black 
+                ? '!bg-gradient-to-b !from-blue-600 !via-blue-500 !to-blue-700 shadow-[0_0_20px_rgba(59,130,246,0.8)]' 
+                : '!bg-gradient-to-b !from-blue-200 !via-blue-100 !to-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+              );
+      }
+
+      // Dot Color Logic
+      let dotColorClass = 'bg-blue-500';
+      if (isHint && hintObj) {
+         if (hintObj.color === '#f97316') dotColorClass = 'bg-orange-500';
+         else if (hintObj.color === '#3b82f6') dotColorClass = 'bg-blue-500';
+         else dotColorClass = 'bg-purple-500'; // Fallback/Both
+      } else if (isLeftHand) {
+         dotColorClass = 'bg-emerald-500';
+      }
 
       keys.push(
         <div
@@ -99,9 +120,9 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
             <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
           )}
           
-          {/* Active indicator dot */}
-          {combinedActive && !black && (
-            <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 ${isLeftHand ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full shadow-lg animate-pulse`} />
+          {/* Active indicator dot (for both white and black keys now) */}
+          {combinedActive && (
+            <div className={`absolute ${black ? 'bottom-2' : 'bottom-3'} left-1/2 -translate-x-1/2 w-2 h-2 ${dotColorClass} rounded-full shadow-lg animate-pulse z-20`} />
           )}
           
           {/* Shadow depth for black keys */}
