@@ -79,7 +79,8 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
 
       pause: () => {
         Tone.getTransport().pause();
-        Tone.getTransport().cancel(); // Clear pending next-note events to prevent duplication on resume
+        Tone.getTransport().cancel(); // Clear pending next-note events
+        get().sampler?.releaseAll();
         set({ 
           playbackState: PlaybackState.PAUSED,
           activeNotes: [],
@@ -89,6 +90,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
       stop: () => {
         Tone.getTransport().stop();
         Tone.getTransport().cancel(); // Clear all scheduled events
+        get().sampler?.releaseAll();
         set({ 
           playbackState: PlaybackState.STOPPED,
           activeNotes: [],
@@ -233,24 +235,9 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
         if (currentVoiceEntries && currentVoiceEntries.length > 0) {
           const activeNotes: import('@/lib/types').ActiveNote[] = [];
           
-          // Calculate audio duration based on note lengths
-          let audioDuration = 0.5; // fallback
-          const noteDurations = currentVoiceEntries
-            .map((v: any) => {
-              if (v.Notes && v.Notes.length > 0) return v.Notes[0].Length.RealValue;
-              return 0;
-            })
-            .filter((d: number) => d > 0);
-            
-          if (noteDurations.length > 0) {
-            audioDuration = Math.max(...noteDurations) * 4 * (60 / Tone.getTransport().bpm.value);
-          }
-
           // Play notes
           currentVoiceEntries.forEach((entry: any) => {
-            // Determine staff index (1-based usually in OSMD, typically 1 for treble, 2 for bass)
-            // We'll normalize 1 -> 0 (right/top), 2 -> 1 (left/bottom) if possible, or just store the ID.
-            // entry.ParentSourceStaffEntry.ParentStaff.Id
+            // Determine staff index
             let staffId = 1;
             try {
                staffId = entry.ParentSourceStaffEntry?.ParentStaff?.Id || 1;
@@ -263,13 +250,41 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
                 if (note.Pitch) {
                   const freq = note.Pitch.Frequency;
                   if (freq > 0) {
-                    sampler?.triggerAttackRelease(freq, audioDuration, Tone.now());
-                    
                     const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+                    
+                    // Add to active notes for visual feedback regardless of tie state
                     activeNotes.push({ 
                         midi,
-                        staffIndex: staffId - 1 // Normalize to 0-based index
+                        staffIndex: staffId - 1 
                     });
+
+                    // AUDIO PLAYBACK LOGIC
+                    // Check for Ties to determine if we should attack or hold
+                    const tie = note.NoteTie;
+                    let shouldAttack = true;
+                    let duration = note.Length.RealValue;
+
+                    if (tie) {
+                        // If we are the destination of a tie (not the start), do not re-attack
+                        // NoteTie normally points to the tie object where this note is involved.
+                        // If this note is NOT the start note of the tie, it's a continuation.
+                        if (tie.StartNote !== note) {
+                            shouldAttack = false;
+                        } else {
+                            // If we ARE the start note, play for the full duration of the tie chain
+                            // NoteTie.Notes contains all notes in the tie chain
+                            if (tie.Notes) {
+                                duration = tie.Notes.reduce((acc: number, n: any) => acc + n.Length.RealValue, 0);
+                            }
+                        }
+                    }
+
+                    if (shouldAttack) {
+                        // Convert musical duration to seconds
+                        // Formula: RealValue (1.0 = whole) * 4 (quarters) * (60/BPM)
+                        const audioDurationSeconds = duration * 4 * (60 / Tone.getTransport().bpm.value);
+                        sampler?.triggerAttackRelease(freq, audioDurationSeconds, Tone.now());
+                    }
                   }
                 }
               });
@@ -279,7 +294,7 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
           set({ activeNotes });
         }
 
-        // Calculate duration to next note
+        // Calculate duration to next note (for stepper)
         const currentTimestamp = iterator.currentTimeStamp.RealValue;
         let durationToNext = 0;
 
