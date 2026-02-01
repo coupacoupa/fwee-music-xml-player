@@ -45,6 +45,7 @@ export default function Home() {
     pianoLoaded,
     play,
     pause,
+    stop,
     reset,
     setBpm,
     setOsmd,
@@ -119,7 +120,7 @@ export default function Home() {
   };
 
   const toggleRecording = async () => {
-    reset(); // Reset playback state when toggling practice mode
+    stop(); // Stop playback but preserve cursor position
     resetCoach(); // Reset coach state
     
     if (isRecording) {
@@ -383,12 +384,12 @@ export default function Home() {
                   onClick={toggleRecording}
                   disabled={playbackState === PlaybackState.PLAYING}
                   variant={isRecording ? "primary" : "ghost"} 
-                  icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-gray-500" />}
+                  icon={isRecording ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4 text-gray-500" />}
                   label={isRecording ? "Stop Practice" : "Start Practice"}
                   className={cn(
                     "rounded-lg h-8 w-8 transition-all",
                     isRecording 
-                      ? "ring-2 ring-blue-500 bg-blue-600 hover:bg-blue-700 text-white shadow-md" 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" 
                       : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
                   )}
                 />

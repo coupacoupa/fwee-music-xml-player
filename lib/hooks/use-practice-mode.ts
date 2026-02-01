@@ -16,11 +16,33 @@ export function usePracticeMode({ osmd, enabled = true }: UsePracticeModeOptions
 
   // Update expected notes initially and when OSMD or cursor position changes
   useEffect(() => {
-    if (osmd && enabled) {
-      const notes = getCurrentExpectedNotes(osmd);
+    if (osmd && enabled && osmd.cursor && osmd.cursor.iterator) {
+      // Check for rests at current position and skip if needed
+      let notes = getCurrentExpectedNotes(osmd);
+      
+      // Auto-skip rests logic (safety limit 100 to prevent freezes)
+      let ops = 0;
+      while (
+         notes.length === 0 && 
+         osmd.cursor && 
+         osmd.cursor.iterator && 
+         !osmd.cursor.iterator.EndReached && 
+         ops < 100
+      ) {
+          try {
+             console.log('[PRACTICE] Auto-skipping initial rest...');
+             osmd.cursor.next();
+             notes = getCurrentExpectedNotes(osmd);
+          } catch (e) {
+             console.warn("Error auto-skipping rest:", e);
+             break;
+          }
+          ops++;
+      }
+      
       setExpectedNotes(notes);
     }
-  }, [osmd, enabled, setExpectedNotes, currentTimestamp]); // Added currentTimestamp dependency
+  }, [osmd, enabled, setExpectedNotes, currentTimestamp]);
 
   const currentExpectedNotes = useCoachStore(s => s.expectedNotes);
 
@@ -63,10 +85,26 @@ export function usePracticeMode({ osmd, enabled = true }: UsePracticeModeOptions
       if (checkNoteMatch(note.midi, expectedNotes)) {
         console.log('[PRACTICE] ✅ Correct note! Advancing cursor...');
         advanceCursor(osmd);
+        
+        // Auto-skip rests after valid input
+        let nextNotes = getCurrentExpectedNotes(osmd);
+        let ops = 0;
+        while (
+            nextNotes.length === 0 && 
+            osmd.cursor && 
+            osmd.cursor.iterator && 
+            !osmd.cursor.iterator.EndReached && 
+            ops < 100
+        ) {
+            console.log('[PRACTICE] Skipping rest...');
+            advanceCursor(osmd);
+            nextNotes = getCurrentExpectedNotes(osmd);
+            ops++;
+        }
+
         lastHitTimeRef.current = Date.now();
         
         // Update expected notes for the new position
-        const nextNotes = getCurrentExpectedNotes(osmd);
         setExpectedNotes(nextNotes);
         
         // Trigger visual feedback
