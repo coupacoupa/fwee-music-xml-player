@@ -346,23 +346,9 @@ export default function Home() {
                   onClick={togglePlayback}
                   disabled={!pianoLoaded}
                   variant="secondary"
-                  icon={!pianoLoaded ? <Spinner size="sm" /> : (playbackState === PlaybackState.PLAYING ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />)}
+                  icon={!pianoLoaded ? <Spinner size="sm" className="w-3.5 h-3.5" /> : (playbackState === PlaybackState.PLAYING ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />)}
                   label={!pianoLoaded ? "Loading Samples…" : (playbackState === PlaybackState.PLAYING ? "Pause" : "Play")}
                   className="rounded-lg h-8 w-8 font-semibold shadow-sm transition-all active:scale-95"
-                />
-
-                <div className="w-px h-6 bg-gray-200 mx-1" />
-
-                {/* Recording button */}
-                <IconButton
-                  onClick={toggleRecording}
-                  variant={isRecording ? "primary" : "secondary"}
-                  icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  label={isRecording ? "Stop Recording" : "Start Recording"}
-                  className={cn(
-                    "rounded-lg h-8 w-8",
-                    isRecording && "animate-pulse ring-2 ring-red-500 bg-red-600 hover:bg-red-700"
-                  )}
                 />
               </div>
             )}
@@ -374,6 +360,25 @@ export default function Home() {
                 <span>{formatTime(position.currentTime)}</span>
               </div>
             )}
+
+            <div className="w-px h-6 bg-gray-200 mx-1" />
+
+            {/* Practice / Recording Mode */}
+            <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
+                {!isRecording && <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter hidden sm:inline-block select-none">Practice</span>}
+                 <IconButton
+                  onClick={toggleRecording}
+                  variant={isRecording ? "primary" : "ghost"} 
+                  icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-gray-500" />}
+                  label={isRecording ? "Stop Practice" : "Start Practice"}
+                  className={cn(
+                    "rounded-lg h-8 w-8 transition-all",
+                    isRecording 
+                      ? "animate-pulse ring-2 ring-blue-500 bg-blue-600 hover:bg-blue-700 text-white shadow-md" 
+                      : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
+                  )}
+                />
+            </div>
 
             <div className="w-px h-6 bg-gray-200 mx-1" />
 
