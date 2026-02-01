@@ -46,7 +46,7 @@ export function Select({
   }, [options, searchQuery]);
 
   return (
-    <BaseSelect.Root value={value ?? null} onValueChange={(val: string | null) => val && onChange(val)} disabled={disabled}>
+    <BaseSelect.Root value={searchQuery ? null : (value ?? null)} onValueChange={(val: string | null) => val && onChange(val)} disabled={disabled}>
       <BaseSelect.Trigger
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200',
@@ -73,6 +73,7 @@ export function Select({
           sideOffset={4}
           side="bottom"
           align="start"
+          alignItemWithTrigger={false}
         >
           <BaseSelect.Popup
             className={cn(
@@ -111,36 +112,40 @@ export function Select({
                   No matches found
                 </div>
               ) : (
-                filteredOptions.map((option) => (
-                  <BaseSelect.Item
-                    key={option.id}
-                    value={option.id}
-                    className={cn(
-                      'w-full text-left px-3 py-2 rounded-md transition-all flex items-center gap-2',
-                      'cursor-pointer outline-none',
-                      'hover:bg-gray-100 text-gray-600',
-                      'data-[selected]:bg-blue-50 data-[selected]:text-blue-700 data-[selected]:font-medium',
-                      'data-[selected]:ring-1 data-[selected]:ring-blue-200',
-                      'data-[highlighted]:bg-gray-50'
-                    )}
-                  >
-                    {renderOption ? (
-                      renderOption(option)
-                    ) : (
-                      <>
-                        {option.icon && (
-                          <span className="w-3.5 h-3.5 shrink-0 data-[selected]:text-blue-500">
-                            {option.icon}
-                          </span>
-                        )}
-                        <span className="truncate text-[13px] flex-1">{option.label}</span>
-                        <BaseSelect.ItemIndicator className="ml-auto">
-                          <Check className="w-3.5 h-3.5 text-blue-600" />
-                        </BaseSelect.ItemIndicator>
-                      </>
-                    )}
-                  </BaseSelect.Item>
-                ))
+                filteredOptions.map((option) => {
+                  const isSelected = option.id === value;
+                  return (
+                    <BaseSelect.Item
+                      key={option.id}
+                      value={option.id}
+                      className={cn(
+                        'w-full text-left px-3 py-2 rounded-md transition-all flex items-center gap-2',
+                        'cursor-pointer outline-none',
+                        'hover:bg-gray-100 text-gray-600',
+                        isSelected && 'bg-blue-50 text-blue-700 font-medium ring-1 ring-blue-200',
+                        'data-[highlighted]:bg-gray-50'
+                      )}
+                    >
+                      {renderOption ? (
+                        renderOption(option)
+                      ) : (
+                        <>
+                          {option.icon && (
+                            <span className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-blue-500" : "")}>
+                              {option.icon}
+                            </span>
+                          )}
+                          <span className="truncate text-[13px] flex-1">{option.label}</span>
+                          {isSelected && (
+                             <div className="ml-auto">
+                               <Check className="w-3.5 h-3.5 text-blue-600" />
+                             </div>
+                          )}
+                        </>
+                      )}
+                    </BaseSelect.Item>
+                  );
+                })
               )}
             </BaseSelect.List>
           </BaseSelect.Popup>
