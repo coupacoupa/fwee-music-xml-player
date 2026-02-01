@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Music2, ZoomIn, ZoomOut, LogOut, FileMusic, Settings } from "lucide-react";
+import { Music2, ZoomIn, ZoomOut, LogOut, FileMusic, Settings, SkipBack } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
-import { Play, Pause, Timer, SkipBack, Minus, Plus, Activity, Music, Square, Mic, MicOff, Keyboard } from "lucide-react";
+import { Play, Pause, Timer, Minus, Plus, Activity, Music, Square, Mic, MicOff, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PianoKeyboard } from "@/components/piano-keyboard";
 import { usePlaybackStore } from "@/lib/stores/playback-store";
@@ -85,7 +85,7 @@ export default function Home() {
 
   // Mic recording
   const { startRecording, stopRecording } = useMicInput();
-  const { isRecording, setRecording } = useCoachStore();
+  const { isRecording, setRecording, reset: resetCoach } = useCoachStore();
 
 
   // Load sheets when user logs in
@@ -119,6 +119,9 @@ export default function Home() {
   };
 
   const toggleRecording = async () => {
+    reset(); // Reset playback state when toggling practice mode
+    resetCoach(); // Reset coach state
+    
     if (isRecording) {
       stopRecording();
       setRecording(false);
@@ -340,17 +343,13 @@ export default function Home() {
             {/* Playback Core */}
             {showPlaybackControls && (
               <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
-                 <IconButton
-                  onClick={() => { reset(); play(); }}
-                  variant="secondary"
-                  icon={<SkipBack className="w-4 h-4 fill-current" />}
-                  label="Restart"
-                  className="rounded-lg w-8 h-8"
-                />
-
                 <IconButton
-                  onClick={reset}
+                  onClick={() => {
+                    reset();
+                    resetCoach();
+                  }}
                   variant="secondary"
+                  disabled={isRecording}
                   icon={<Square className="w-3.5 h-3.5 fill-current" />}
                   label="Stop"
                   className="rounded-lg w-8 h-8"
@@ -358,7 +357,7 @@ export default function Home() {
                 
                 <IconButton
                   onClick={togglePlayback}
-                  disabled={!pianoLoaded}
+                  disabled={!pianoLoaded || isRecording}
                   variant="secondary"
                   icon={!pianoLoaded ? <Spinner size="sm" className="w-3.5 h-3.5" /> : (playbackState === PlaybackState.PLAYING ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />)}
                   label={!pianoLoaded ? "Loading Samples…" : (playbackState === PlaybackState.PLAYING ? "Pause" : "Play")}
@@ -379,16 +378,17 @@ export default function Home() {
 
             {/* Practice / Recording Mode */}
             <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
-                {!isRecording && <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter hidden sm:inline-block select-none">Practice</span>}
+                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter hidden sm:inline-block select-none">Practice</span>
                  <IconButton
                   onClick={toggleRecording}
+                  disabled={playbackState === PlaybackState.PLAYING}
                   variant={isRecording ? "primary" : "ghost"} 
                   icon={isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-gray-500" />}
                   label={isRecording ? "Stop Practice" : "Start Practice"}
                   className={cn(
                     "rounded-lg h-8 w-8 transition-all",
                     isRecording 
-                      ? "animate-pulse ring-2 ring-blue-500 bg-blue-600 hover:bg-blue-700 text-white shadow-md" 
+                      ? "ring-2 ring-blue-500 bg-blue-600 hover:bg-blue-700 text-white shadow-md" 
                       : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
                   )}
                 />

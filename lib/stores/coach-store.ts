@@ -19,6 +19,7 @@ interface CoachStoreState {
   setExpectedNotes: (notes: number[]) => void;
   toggleHint: () => void;
   setActiveHints: (hints: Array<{ midi: number; color: string }>) => void;
+  reset: () => void;
 }
 
 export const useCoachStore = create<CoachStoreState>()(
@@ -66,6 +67,14 @@ export const useCoachStore = create<CoachStoreState>()(
 
       setActiveHints: (activeHints) => {
         set({ activeHints });
+      },
+
+      reset: () => {
+        set({
+          detectedNotes: [],
+          // expectedNotes: [], // Keep expected notes on reset so "Next" doesn't flash empty
+          activeHints: [],
+        });
       },
     }),
     { name: 'CoachStore' }

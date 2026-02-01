@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { PointF2D } from 'opensheetmusicdisplay';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
+import { useCoachStore } from '@/lib/stores/coach-store';
 import { Spinner } from '@/components/ui/spinner';
 import { usePracticeMode } from '@/lib/hooks/use-practice-mode';
 
@@ -73,6 +74,9 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
       setIsLoading(true);
       setError(null);
       
+      // Clear expected notes immediately to prevent showing stale "Next" notes
+      useCoachStore.getState().setExpectedNotes([]);
+      
       try {
         const { OpenSheetMusicDisplay } = await import('opensheetmusicdisplay');
         
@@ -109,6 +113,10 @@ export function MusicXMLDisplay({ url, zoom = 1.0, onOsmdInit, enableClickIntera
         
         // Register OSMD instance with playback store
         usePlaybackStore.getState().setOsmd(osmdRef.current);
+
+        // HARD RESET: Ensure everything is clean when a new sheet loads
+        usePlaybackStore.getState().reset();
+        useCoachStore.getState().reset();
         
         setIsLoading(false);
       } catch (err) {

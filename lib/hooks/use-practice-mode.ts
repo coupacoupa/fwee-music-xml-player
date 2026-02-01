@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { useCoachStore } from '@/lib/stores/coach-store';
+import { usePlaybackStore } from '@/lib/stores/playback-store';
 
 interface UsePracticeModeOptions {
   osmd: OpenSheetMusicDisplay | null;
@@ -9,16 +10,17 @@ interface UsePracticeModeOptions {
 
 export function usePracticeMode({ osmd, enabled = true }: UsePracticeModeOptions) {
   const { detectedNotes, setExpectedNotes, isHintEnabled, setActiveHints } = useCoachStore();
+  const currentTimestamp = usePlaybackStore(s => s.position.currentTimestamp);
   const lastProcessedIndexRef = useRef(0);
   const lastHitTimeRef = useRef(0);
 
-  // Update expected notes initially and when OSMD changes
+  // Update expected notes initially and when OSMD or cursor position changes
   useEffect(() => {
     if (osmd && enabled) {
       const notes = getCurrentExpectedNotes(osmd);
       setExpectedNotes(notes);
     }
-  }, [osmd, enabled, setExpectedNotes]);
+  }, [osmd, enabled, setExpectedNotes, currentTimestamp]); // Added currentTimestamp dependency
 
   const currentExpectedNotes = useCoachStore(s => s.expectedNotes);
 
