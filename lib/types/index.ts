@@ -66,6 +66,8 @@ export interface PlaybackStoreState {
   setSampler: (sampler: Tone.Sampler | null) => void;
   setPianoLoaded: (loaded: boolean) => void;
   scheduleNextNote: () => void;
+  stepForward: () => void;
+  stepBackward: () => void;
 }
 
 export interface SheetStoreState {

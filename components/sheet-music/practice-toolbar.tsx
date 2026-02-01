@@ -1,7 +1,9 @@
 'use client';
 
 import { useCoachStore } from '@/lib/stores/coach-store';
+import { usePlaybackStore } from '@/lib/stores/playback-store';
 import { cn } from '@/lib/utils/cn';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 // Helper to convert MIDI to note name (e.g., 60 -> C4)
@@ -19,6 +21,7 @@ export function PracticeToolbar() {
     expectedNotes,
     isHintEnabled,
   } = useCoachStore();
+  const { stepForward, stepBackward } = usePlaybackStore();
   
   const [lastPlayedNote, setLastPlayedNote] = useState<{name: string, correct: boolean} | null>(null);
 
@@ -51,12 +54,31 @@ export function PracticeToolbar() {
         <div className="flex items-center gap-6 sm:gap-8">
             
             {/* Next Notes */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Next</span>
-                 <div className="text-xl font-bold text-gray-800 font-mono tracking-tight bg-white px-3 py-0.5 rounded border border-gray-200 shadow-sm min-w-[3rem] text-center">
-                    {expectedNotes.length > 0 
-                      ? expectedNotes.map(midiToNoteName).join(' ') 
-                      : <span className="text-gray-300 text-base">...</span>}
+                 
+                 <div className="flex items-center gap-1">
+                    <button 
+                      onClick={stepBackward}
+                      className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Previous Step"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="text-xl font-bold text-gray-800 font-mono tracking-tight bg-white px-3 py-0.5 rounded border border-gray-200 shadow-sm min-w-[3rem] text-center">
+                        {expectedNotes.length > 0 
+                          ? expectedNotes.map(midiToNoteName).join(' ') 
+                          : <span className="text-gray-300 text-base">...</span>}
+                    </div>
+
+                    <button 
+                      onClick={stepForward}
+                      className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Next Step"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                  </div>
             </div>
 

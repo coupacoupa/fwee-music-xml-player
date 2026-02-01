@@ -21,6 +21,39 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
       sampler: null,
 
       // Actions
+      stepForward: () => {
+        const { osmd, bpm } = get();
+        if (osmd?.cursor) {
+          osmd.cursor.next();
+          
+          const currentTimestamp = osmd.cursor.iterator.currentTimeStamp.RealValue;
+          const currentSeconds = (currentTimestamp * 4) * (60 / bpm);
+          
+          set({
+            position: {
+              currentTime: currentSeconds,
+              currentTimestamp: currentTimestamp,
+            },
+          });
+        }
+      },
+
+      stepBackward: () => {
+        const { osmd, bpm } = get();
+        if (osmd?.cursor) {
+          osmd.cursor.previous();
+          
+          const currentTimestamp = osmd.cursor.iterator.currentTimeStamp.RealValue;
+          const currentSeconds = (currentTimestamp * 4) * (60 / bpm);
+          
+          set({
+            position: {
+              currentTime: currentSeconds,
+              currentTimestamp: currentTimestamp,
+            },
+          });
+        }
+      },
       play: async () => {
         const { osmd, pianoLoaded, sampler } = get();
         
