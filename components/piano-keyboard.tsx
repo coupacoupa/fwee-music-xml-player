@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import * as Tone from 'tone';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
 import { useCoachStore } from '@/lib/stores/coach-store';
+import { useUIStore } from '@/lib/stores/ui-store';
 import { isBlackKey, midiToFrequency } from '@/lib/utils/music-utils';
+import { useComputerKeyboard, KEY_LABELS } from '@/lib/hooks/use-computer-keyboard';
 
 interface PianoKeyboardProps {
   keyWidth?: number; // Width in pixels for white keys
@@ -16,6 +18,8 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
   // Get active notes from stores
   const activeNotes = usePlaybackStore((state) => state.activeNotes);
   const activeHints = useCoachStore((state) => state.activeHints);
+  const showKeyBindings = useUIStore((state) => state.showKeyBindings);
+  const { pressedKeys: keyboardPressedKeys } = useComputerKeyboard(); // Active keys from computer keyboard
   const { sampler, pianoLoaded } = usePlaybackStore();
   
   // 88 keys: MIDI 21 (A0) to 108 (C8)
@@ -54,9 +58,11 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
       const activeobj = activeNotes.find(note => note.midi === midi);
       const hintObj = activeHints.find(hint => hint.midi === midi);
       
+      const keyboardPressed = keyboardPressedKeys.has(midi);
+      
       const isActive = !!activeobj;
       const isHint = !!hintObj;
-      const isPressed = pressedKeys.has(midi);
+      const isPressed = pressedKeys.has(midi) || keyboardPressed;
       const black = isBlackKey(midi);
       const isLeftHand = activeobj?.staffIndex === 1; // Playback logic
 
@@ -91,6 +97,9 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
          dotColorClass = 'bg-emerald-500';
       }
 
+      // Keyboard binding label
+      const keyLabel = KEY_LABELS[midi];
+
       keys.push(
         <div
           key={midi}
@@ -103,7 +112,7 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
             }
             ${combinedActive ? activeColorClass : ''}
             ${isPressed && !black ? 'translate-y-[2px]' : ''}
-            hover:brightness-95 active:brightness-90
+            hover:brightness-95 active:brightness-90 animate-in fade-in zoom-in duration-300
           `}
           style={{
             width: black ? `${blackKeyWidth}px` : `${keyWidth}px`,
@@ -118,6 +127,13 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
           {/* Reflection highlight for white keys */}
           {!black && (
             <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+          )}
+
+          {/* Key Binding Hint */}
+          {showKeyBindings && keyLabel && (
+             <div className={`absolute -top-7 left-1/2 -translate-x-1/2 text-[11px] font-extrabold text-gray-500 select-none uppercase tracking-tight ${black ? 'z-20' : 'z-0'}`}>
+                {keyLabel}
+             </div>
           )}
           
           {/* Active indicator dot (for both white and black keys now) */}
@@ -138,8 +154,8 @@ export function PianoKeyboard({ keyWidth = 28 }: PianoKeyboardProps) {
   return (
     <div className="w-full bg-gray-900/10 backdrop-blur-sm border-t border-gray-200/50 shadow-lg relative">
       {/* Keys container */}
-      <div className="max-w-fit mx-auto flex px-6 py-4 overflow-x-auto no-scrollbar">
-        <div className="flex shadow-lg rounded-b-lg overflow-hidden">
+      <div className="max-w-fit mx-auto flex px-6 pt-10 pb-4 overflow-x-auto no-scrollbar">
+        <div className="flex shadow-lg rounded-b-lg">
           {renderKeys()}
         </div>
       </div>

@@ -11,6 +11,7 @@ export const useUIStore = create<UIStoreState>()(
       showPlaybackControls: true,
       showBPM: true,
       showTimer: true,
+      showKeyBindings: true,
       zoom: 1.0,
       pianoKeySize: 28,
       contextMenu: null,
@@ -34,6 +35,10 @@ export const useUIStore = create<UIStoreState>()(
 
       toggleTimer: () => {
         set((state) => ({ showTimer: !state.showTimer }));
+      },
+
+      toggleKeyBindings: () => {
+        set((state) => ({ showKeyBindings: !state.showKeyBindings }));
       },
 
       setZoom: (zoom: number) => {

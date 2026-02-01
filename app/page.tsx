@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { Music2, ZoomIn, ZoomOut, LogOut, FileMusic, Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/auth-context";
-import { Play, Pause, Timer, SkipBack, Minus, Plus, Activity, Music, Square, Mic, MicOff } from "lucide-react";
+import { Play, Pause, Timer, SkipBack, Minus, Plus, Activity, Music, Square, Mic, MicOff, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PianoKeyboard } from "@/components/piano-keyboard";
 import { usePlaybackStore } from "@/lib/stores/playback-store";
@@ -69,6 +69,7 @@ export default function Home() {
     showPlaybackControls,
     showBPM,
     showTimer,
+    showKeyBindings,
     zoom,
     pianoKeySize,
     contextMenu,
@@ -77,6 +78,7 @@ export default function Home() {
     togglePlaybackControls,
     toggleBPM,
     toggleTimer,
+    toggleKeyBindings,
     setZoom,
     hideContextMenu,
   } = useUIStore();
@@ -183,6 +185,16 @@ export default function Home() {
       },
     },
     {
+      id: 'key-bindings',
+      label: 'Show Keyboard Bindings',
+      icon: <Keyboard className="w-3.5 h-3.5" />,
+      checked: showKeyBindings,
+      onClick: (e) => {
+        e.preventDefault();
+        toggleKeyBindings();
+      },
+    },
+    {
       id: 'playback',
       label: 'Show Playback Controls',
       icon: <Play className="w-3.5 h-3.5" />,
@@ -217,10 +229,12 @@ export default function Home() {
     showPlaybackControls, 
     showTimer, 
     showBPM, 
+    showKeyBindings,
     toggleKeyboard, 
     togglePlaybackControls, 
     toggleTimer, 
-    toggleBPM
+    toggleBPM,
+    toggleKeyBindings
   ]);
 
   // User menu items

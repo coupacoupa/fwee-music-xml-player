@@ -137,7 +137,39 @@ export const usePlaybackStore = create<PlaybackStoreState>()(
       },
 
       setOsmd: (osmd) => {
-        set({ osmd });
+        let initialBpm = 100;
+        
+        if (osmd && osmd.Sheet) {
+          try {
+            // Try to find BPM in MetronomeMarks (this covers <metronome> tags)
+            const sheet = osmd.Sheet as any;
+            if (sheet.MetronomeMarks && sheet.MetronomeMarks.length > 0) {
+              // MetronomeMarks is often an array of objects with TempoInBPM
+              const mark = sheet.MetronomeMarks[0];
+              if (mark && mark.TempoInBPM) {
+                 initialBpm = mark.TempoInBPM;
+              }
+            } 
+            // Also check the first SourceMeasure for TempoInBPM (often populated types)
+            else if (sheet.SourceMeasures && sheet.SourceMeasures.length > 0) {
+               const firstMeasure = sheet.SourceMeasures[0];
+               if (firstMeasure && firstMeasure.TempoInBPM) {
+                 initialBpm = firstMeasure.TempoInBPM;
+               }
+            }
+          } catch (e) {
+            console.warn("Failed to extract BPM from sheet", e);
+          }
+        }
+        
+        // Ensure reasonable BPM range
+        if (initialBpm < 20) initialBpm = 20;
+        if (initialBpm > 300) initialBpm = 300;
+
+        // Apply to Tone Transport
+        Tone.getTransport().bpm.value = initialBpm;
+
+        set({ osmd, bpm: initialBpm });
       },
 
       setSampler: (sampler) => {

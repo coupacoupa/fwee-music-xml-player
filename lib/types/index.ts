@@ -98,12 +98,15 @@ export interface UIStoreState {
   pianoKeySize: number;
   contextMenu: ContextMenuState | null;
   
+  showKeyBindings: boolean;
+  
   // Actions
   toggleKeyboard: () => void;
   setScoreManagerOpen: (open: boolean) => void;
   togglePlaybackControls: () => void;
   toggleBPM: () => void;
   toggleTimer: () => void;
+  toggleKeyBindings: () => void;
   setZoom: (zoom: number) => void;
   setPianoKeySize: (size: number) => void;
   showContextMenu: (x: number, y: number, sheetId: string) => void;
