@@ -24,6 +24,7 @@ import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-me
 import { UserAvatar, type UserAvatarMenuItem } from "@/components/ui/user-avatar";
 import { ScoreManager } from "@/components/sheet-music/score-manager";
 import { PracticeToolbar } from "@/components/sheet-music/practice-toolbar";
+import { AiChat } from "@/components/ai-chat";
 
 const MusicXMLDisplay = dynamic(
   () => import("@/components/sheet-music/musicxml-display").then((mod) => mod.MusicXMLDisplay),
@@ -87,6 +88,8 @@ export default function Home() {
   // Mic recording
   const { startRecording, stopRecording } = useMicInput();
   const { isRecording, setRecording, reset: resetCoach } = useCoachStore();
+
+
 
 
   // Load sheets when user logs in
@@ -393,6 +396,8 @@ export default function Home() {
                       : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
                   )}
                 />
+                
+
             </div>
 
             <div className="w-px h-6 bg-gray-200 mx-1" />
@@ -526,7 +531,7 @@ export default function Home() {
         onOpenChange={setScoreManagerOpen} 
       />
 
-
+      <AiChat />
     </div>
   );
 }

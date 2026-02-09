@@ -156,3 +156,28 @@ export interface NoteInfo {
   octave: number;
   isBlackKey: boolean;
 }
+
+// ============================================================================
+// Chat Types
+// ============================================================================
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  image?: string;
+  timestamp: number;
+}
+
+export interface ChatStoreState {
+  // State
+  isChatOpen: boolean;
+  messages: ChatMessage[];
+  isLoading: boolean;
+
+  // Actions
+  toggleChat: () => void;
+  addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  clearMessages: () => void;
+  sendMessage: (content: string, image?: string) => Promise<void>;
+}
