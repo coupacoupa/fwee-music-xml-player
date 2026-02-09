@@ -5,6 +5,7 @@ interface CoachStoreState {
   // State
   isRecording: boolean;
   detectedNotes: Array<{ midi: number; frequency: number; timestamp: number; confidence: number }>;
+  liveMicNotes: Array<{ midi: number; confidence: number }>;
   micPermissionGranted: boolean;
   micError: string | null;
   expectedNotes: number[];
@@ -14,6 +15,8 @@ interface CoachStoreState {
   // Actions
   setRecording: (isRecording: boolean) => void;
   setDetectedNotes: (notes: Array<{ midi: number; frequency: number; timestamp: number; confidence: number }>) => void;
+  addDetectedNote: (note: { midi: number; frequency: number; timestamp: number; confidence: number }) => void;
+  setLiveMicNotes: (notes: Array<{ midi: number; confidence: number }>) => void;
   setMicPermissionGranted: (granted: boolean) => void;
   setMicError: (error: string | null) => void;
   setExpectedNotes: (notes: number[]) => void;
@@ -42,6 +45,16 @@ export const useCoachStore = create<CoachStoreState>()(
 
       setDetectedNotes: (detectedNotes) => {
         set({ detectedNotes });
+      },
+      
+      addDetectedNote: (note) => {
+        set((state) => ({ 
+          detectedNotes: [...state.detectedNotes, note] 
+        }));
+      },
+
+      setLiveMicNotes: (liveMicNotes) => {
+        set({ liveMicNotes });
       },
 
       setMicPermissionGranted: (micPermissionGranted: boolean) => {
@@ -72,7 +85,7 @@ export const useCoachStore = create<CoachStoreState>()(
       reset: () => {
         set({
           detectedNotes: [],
-          // expectedNotes: [], // Keep expected notes on reset so "Next" doesn't flash empty
+          liveMicNotes: [],
           activeHints: [],
         });
       },

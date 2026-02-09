@@ -4,7 +4,7 @@ import { useCoachStore } from '@/lib/stores/coach-store';
 import { usePlaybackStore } from '@/lib/stores/playback-store';
 import { cn } from '@/lib/utils/cn';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 // Helper to convert MIDI to note name (e.g., 60 -> C4)
 function midiToNoteName(midi: number): string {
@@ -25,19 +25,43 @@ export function PracticeToolbar() {
   
   const [lastPlayedNote, setLastPlayedNote] = useState<{name: string, correct: boolean} | null>(null);
 
-  // Update last played note when detected notes change
+  // Group notes into chords (notes with same timestamp from the same analysis frame)
+  const groupedNotes = useMemo(() => {
+    return detectedNotes.reduce((acc, note) => {
+      const lastGroup = acc[acc.length - 1];
+      // If the note is within 50ms of the last group, consider it part of the same chord/event
+      if (lastGroup && Math.abs(note.timestamp - lastGroup.timestamp) < 50) {
+         // Avoid duplicates in the same group
+         if (!lastGroup.midis.includes(note.midi)) {
+            lastGroup.midis.push(note.midi);
+            lastGroup.midis.sort((a, b) => a - b); // Sort midis for consistent display
+         }
+      } else {
+        acc.push({ timestamp: note.timestamp, midis: [note.midi] });
+      }
+      return acc;
+    }, [] as Array<{ timestamp: number, midis: number[] }>);
+  }, [detectedNotes]);
+
+  // Update last played note when groups change
   useEffect(() => {
-    if (detectedNotes.length > 0) {
-      const lastNote = detectedNotes[detectedNotes.length - 1];
-      const isCorrect = expectedNotes.some(expected => 
-        Math.abs(expected - lastNote.midi) <= 1
+    if (groupedNotes.length > 0) {
+      const lastGroup = groupedNotes[groupedNotes.length - 1];
+      
+      // Check if ANY of the played notes match ANY of the expected notes
+      // (This is lenient: if you play C+E and we expect C, it counts as correct)
+      const isCorrect = lastGroup.midis.some((io: number) => 
+          expectedNotes.some(expected => Math.abs(expected - io) <= 1)
       );
+
+      const noteNames = lastGroup.midis.map(midiToNoteName).join('+');
+
       setLastPlayedNote({
-        name: midiToNoteName(lastNote.midi),
+        name: noteNames,
         correct: isCorrect
       });
     }
-  }, [detectedNotes, expectedNotes]);
+  }, [groupedNotes, expectedNotes]);
 
   if (!isRecording) return null;
 
@@ -103,12 +127,12 @@ export function PracticeToolbar() {
             <div className="hidden sm:flex items-center gap-2">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mr-1 opacity-50">History</span>
                 <div className="flex gap-1.5 opacity-60">
-                    {detectedNotes.slice(-5, -1).reverse().map((note, i) => (
-                      <span key={`${note.timestamp}-${i}`} className="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 rounded">
-                        {midiToNoteName(note.midi)}
+                    {groupedNotes.slice(-6, -1).reverse().map((group, i) => (
+                      <span key={`${group.timestamp}-${i}`} className="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 rounded">
+                        {group.midis.map(midiToNoteName).join('+')}
                       </span>
                     ))}
-                    {detectedNotes.length === 0 && <span className="text-xs text-gray-300 italic">No notes played</span>}
+                    {groupedNotes.length === 0 && <span className="text-xs text-gray-300 italic">No notes played</span>}
                 </div>
             </div>
 

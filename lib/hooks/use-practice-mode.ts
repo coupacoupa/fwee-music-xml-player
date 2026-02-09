@@ -67,23 +67,29 @@ export function usePracticeMode({ osmd, enabled = true }: UsePracticeModeOptions
     
     if (newNotes.length === 0) return;
 
-    newNotes.forEach((note) => {
-      // Prevent duplicate processing of the same note (debounce)
-      const timeSinceLastHit = Date.now() - lastHitTimeRef.current;
-      if (timeSinceLastHit < 200) {
-        return;
-      }
+    // Sort by timestamp just in case
+    const sortedNotes = [...newNotes].sort((a, b) => a.timestamp - b.timestamp);
 
-      // Get expected notes at cursor position
+    sortedNotes.forEach((note) => {
+      // Get expected notes at CURRENT cursor position (it might have advanced in this loop!)
       const expectedNotes = getCurrentExpectedNotes(osmd);
       
-      if (expectedNotes.length === 0) {
-        return;
-      }
+      if (expectedNotes.length === 0) return;
 
+      // Prevent duplicate processing of the SAME MIDI note within a very short window (100ms)
+      // to avoid jitter from the ML model
+      const timeSinceLastHit = Date.now() - lastHitTimeRef.current;
+      
       // Check if detected note matches expected note(s)
       if (checkNoteMatch(note.midi, expectedNotes)) {
-        console.log('[PRACTICE] ✅ Correct note! Advancing cursor...');
+        // If it's a very fast repeated detection of the SAME note, skip it
+        // But if it's a NEW note or enough time has passed, advance
+        if (timeSinceLastHit < 100) {
+           // Skip if it's too fast - might be a flutter in detection
+           return;
+        }
+
+        console.log(`[PRACTICE] ✅ Correct note (${note.midi})! Advancing cursor...`);
         advanceCursor(osmd);
         
         // Auto-skip rests after valid input
@@ -96,18 +102,13 @@ export function usePracticeMode({ osmd, enabled = true }: UsePracticeModeOptions
             !osmd.cursor.iterator.EndReached && 
             ops < 100
         ) {
-            console.log('[PRACTICE] Skipping rest...');
             advanceCursor(osmd);
             nextNotes = getCurrentExpectedNotes(osmd);
             ops++;
         }
 
         lastHitTimeRef.current = Date.now();
-        
-        // Update expected notes for the new position
         setExpectedNotes(nextNotes);
-        
-        // Trigger visual feedback
         highlightCorrectNote(osmd);
       }
     });
